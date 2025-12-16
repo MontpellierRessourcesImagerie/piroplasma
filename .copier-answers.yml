@@ -1,0 +1,19 @@
+# Changes here will be overwritten by Copier; NEVER EDIT MANUALLY
+_commit: v2.0.1
+_src_path: https://github.com/napari/napari-plugin-template
+display_name: Piroplasma
+email: mri-cia@mri.cnrs.fr
+full_name: Volker Baecker
+github_repository_url: https://github.com/MontpellierRessourcesImagerie/piroplasma
+github_username_or_organization: MontpellierRessourcesImagerie
+include_reader_plugin: false
+include_sample_data_plugin: true
+include_widget_plugin: false
+include_writer_plugin: false
+install_dependabot: true
+install_precommit: true
+license: MIT
+module_name: piroplasma
+plugin_name: piroplasma
+short_description: Automatic parasitemia estimation and piroplasma stage detection
+    in blood smears.

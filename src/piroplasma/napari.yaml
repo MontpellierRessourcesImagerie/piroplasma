@@ -1,0 +1,15 @@
+name: piroplasma
+display_name: Piroplasma
+# use 'hidden' to remove plugin from napari hub search results
+visibility: public
+# see https://napari.org/stable/plugins/technical_references/manifest.html#fields for valid categories
+# categories: []
+contributions:
+  commands:
+    - id: piroplasma.make_sample_data
+      python_name: piroplasma._sample_data:make_sample_data
+      title: Load sample data from Piroplasma
+  sample_data:
+    - command: piroplasma.make_sample_data
+      display_name: Piroplasma
+      key: unique_id.1
