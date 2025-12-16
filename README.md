@@ -28,19 +28,6 @@ https://napari.org/stable/plugins/index.html
 You can install `piroplasma` via [pip]:
 
 ```
-pip install piroplasma
-```
-
-If napari is not already installed, you can install `piroplasma` with napari and Qt via:
-
-```
-pip install "piroplasma[all]"
-```
-
-
-To install latest development version :
-
-```
 pip install git+https://github.com/MontpellierRessourcesImagerie/piroplasma.git
 ```
 
