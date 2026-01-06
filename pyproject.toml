@@ -29,9 +29,12 @@ requires-python = ">=3.10"
 # or any other Qt bindings directly (e.g. PyQt5, PySide2).
 # See best practices: https://napari.org/stable/plugins/building_a_plugin/best_practices.html
 dependencies = [
-    "numpy",
-    "napari-tiler@git+https://github.com/MontpellierRessourcesImagerie/napari-tiler.git",
-    "napari-simpleannotate@git+https://github.com/MontpellierRessourcesImagerie/napari-simpleannotate"
+    "napari-tiler>=0.1",
+    "napari-simpleannotate>=0.1.3",
+    "requests",
+    "scikit-image",
+    "appdirs",
+    "numpy"
 ]
 
 [project.optional-dependencies]
