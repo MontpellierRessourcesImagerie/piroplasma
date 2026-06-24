@@ -6,7 +6,8 @@ train: train
 val: val
 test: test
 
-# Classes (example using 80 COCO classes)
+# Classes
 names:
   0: healthy
   1: infected
+  2: popped
