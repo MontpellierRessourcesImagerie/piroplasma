@@ -13,3 +13,4 @@ inference.predict(image)
 print(inference.patches)
 img = Image.fromarray(inference.patches[0], 'RGB')
 img.show()
+
