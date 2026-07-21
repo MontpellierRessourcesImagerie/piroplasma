@@ -1,7 +1,7 @@
 [project]
 name = "piroplasma"
 dynamic = ["version"]
-description = "Automatic parasitemia estimation and piroplasma stage detection in blood smears."
+description = "Detect avian red blood cells and classifiy them, in order to count healthy cells and cells infected by a parasite."
 readme = "README.md"
 license = {file = "LICENSE"}
 authors = [
@@ -30,6 +30,7 @@ requires-python = ">=3.10"
 dependencies = [
     "napari-tiler>=0.1",
     "napari-simpleannotate>=0.1.6",
+    "auto-options-python",
     "requests",
     "scikit-image",
     "appdirs",

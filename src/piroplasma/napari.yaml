@@ -9,7 +9,13 @@ contributions:
     - id: piroplasma.make_sample_data
       python_name: piroplasma._sample_data:make_sample_data
       title: Load sample data from Piroplasma
+    - id: piroplasma.red_blood_cell_classifier
+      python_name: piroplasma._widget:RedBloodCellClassifierWidget
+      title: Red Blood Cell Classifier
   sample_data:
     - command: piroplasma.make_sample_data
       display_name: Piroplasma
       key: unique_id.1
+  widgets:
+    - command: piroplasma.red_blood_cell_classifier
+      display_name: Red Blood Cell Classifier

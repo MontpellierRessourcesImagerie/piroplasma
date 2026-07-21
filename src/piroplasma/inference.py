@@ -1,5 +1,8 @@
+import torch
+import torchvision.ops as ops
 from microglia_analyzer.tiles.tiler import ImageTiler2D
-from ultralytics import YOLO
+
+
 
 class PiroplasmaInference(object):
 
@@ -10,12 +13,16 @@ class PiroplasmaInference(object):
         self.patchSize = patchSize
         self.imageSize = 1280
         self.distanceFromBorder = 100
+        self.iouThreshold = 0.85
         self.tiler = None
         if overlap is None:
             self.overlap = int(round(self.patchSize / 3.0))
         self.tiles = None
-        self.yoloOutput = []
         self.results = []
+        self.boxes = torch.tensor([])
+        self.scores = torch.tensor([])
+        self.labels = torch.tensor([])
+        self.minScore = 0
 
 
     def predict(self, image):
@@ -23,32 +30,69 @@ class PiroplasmaInference(object):
         self.results = []
         for tile in self.tiles:
             self.results.append(self.model.predict(tile, imgsz=self.imageSize)[0])
+        self.removeResultsCloseToTileBorders()
+        self.boxes, self.scores, self.labels = self.getFlattenedGlobalBoxScoreAndLabelTensors()
+        self.supressNonMaximumBoxes()
+
+
+    def removeResultsCloseToTileBorders(self):
         for result in self.results:
             result.boxes = [bbox for bbox in result.boxes if
-                    self.distanceFromBorder < bbox.xyxy.tolist()[0][0] < self.patchSize - self.distanceFromBorder and
-                    self.distanceFromBorder < bbox.xyxy.tolist()[0][1] < self.patchSize - self.distanceFromBorder and
-                    self.distanceFromBorder < bbox.xyxy.tolist()[0][2] < self.patchSize - self.distanceFromBorder and
-                    self.distanceFromBorder < bbox.xyxy.tolist()[0][3] < self.patchSize - self.distanceFromBorder]
-        self.yoloOutput = []
+            self.distanceFromBorder < bbox.xyxy.tolist()[0][0] < self.patchSize - self.distanceFromBorder and
+            self.distanceFromBorder < bbox.xyxy.tolist()[0][1] < self.patchSize - self.distanceFromBorder and
+            self.distanceFromBorder < bbox.xyxy.tolist()[0][2] < self.patchSize - self.distanceFromBorder and
+            self.distanceFromBorder < bbox.xyxy.tolist()[0][3] < self.patchSize - self.distanceFromBorder]
+
+
+    def getFlattenedGlobalBoxScoreAndLabelTensors(self):
+        flattenedGlobalBoxes = []
+        flattenedScores = []
+        flattenedLabels = []
         for i, result in enumerate(self.results):
             y, x = self.tiler.layout[i].ul_corner
-            result.boxes = [[box[1] + y, box[0] + x, box[3] + y, box[2] + x] for box in result.boxes]
+            if not result.boxes:
+                continue
+            boxes = [[int(round(box.xyxy.tolist()[0][0] + x)),
+                          int(round(box.xyxy.tolist()[0][1] + y)),
+                          int(round(box.xyxy.tolist()[0][2] + x)),
+                          int(round(box.xyxy.tolist()[0][3] + y))
+                          ] for box in result.boxes]
             scores = [box.conf.tolist()[0] for box in result.boxes]
-            classes = [int(box.cls.tolist()[0]) for box in result.boxes]
-            for aBox, aScore, aClass in zip(result.boxes, scores, classes):
-                self.yoloOutput.append((aBox, aScore, aClass))
-        '''            
-        for i, tileResults in enumerate(results.xyxy):
-            boxes = tileResults[:, :4].tolist()
-            boxes = [[f * a, f * b, f * c, f * d] for (a, b, c, d) in boxes]
-            y, x = tiles_manager.layout[i].ul_corner
-            y, x = int(y * f), int(x * f)
-            boxes = [[box[1] + y, box[0] + x, box[3] + y, box[2] + x] for box in boxes]
-            scores = tileResults[:, 4].tolist()
-            classes = [int(c) for c in tileResults[:, 5].tolist()]
-            for box, score, c in zip(boxes, scores, classes):
-                self.yolo_output.append((box, score, c))
-        '''
+            labels = [int(box.cls.tolist()[0]) for box in result.boxes]
+            flattenedGlobalBoxes.extend(boxes)
+            flattenedScores.extend(scores)
+            flattenedLabels.extend(labels)
+        return  (torch.tensor(flattenedGlobalBoxes, dtype=torch.float32),
+                torch.tensor(flattenedScores, dtype=torch.float32),
+                torch.tensor(flattenedLabels, dtype=torch.uint8))
+
+
+    def supressNonMaximumBoxes(self):
+        keepIndicesTensor = ops.nms(self.boxes, self.scores, iou_threshold=self.iouThreshold)
+        self.boxes = self.boxes[keepIndicesTensor]
+        self.labels = self.labels[keepIndicesTensor]
+        self.scores = self.scores[keepIndicesTensor]
+
+
+    def getBoxesAsShapesPerLabel(self):
+        healthyShapes = []
+        infectedShapes = []
+        poppedShapes = []
+        for box, score, label in zip(self.boxes.tolist(), self.scores.tolist(), self.labels.tolist()):
+            if score < self.minScore:
+                continue
+            shape = [(int(round(box[1])),
+                     int(round(box[0]))),
+                     (int(round(box[3])),
+                      int(round(box[2])))]
+            if label == 0:
+                healthyShapes.append(shape)
+            if label == 1:
+                infectedShapes.append(shape)
+            if label == 2:
+                poppedShapes.append(shape)
+        return healthyShapes, infectedShapes, poppedShapes
+
 
     def batchPredict(self, folder):
         pass
