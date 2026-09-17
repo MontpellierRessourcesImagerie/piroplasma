@@ -3,16 +3,11 @@ import os
 dataset = "ds260901"
 baseFolder = "/run/media/baecker/data/programs/Fiji/mri-tools/piroplasma/src/datasets/"
 datasetFolder = baseFolder + dataset + "/"
-backgroundFolder = "/run/media/baecker/data/programs/Fiji/mri-tools/piroplasma/src/datasets/" + dataset + "/background/"
-trainPath = datasetFolder + "train/"
-trainBackgroundPath = backgroundFolder + "train/"
-valPath = datasetFolder + "val/"
-valBackgroundPath = backgroundFolder + "val/"
-testPath = datasetFolder + "test/"
-testBackgroundPath = backgroundFolder + "test/"
+backgroundFolder = datasetFolder + "/background/"
 
-IN_PATHS = [trainPath, valPath, testPath]
-OUT_PATHS = [trainBackgroundPath, valBackgroundPath, testBackgroundPath]
+IN_PATHS = [datasetFolder]
+OUT_PATHS = [backgroundFolder]
+
 PATHS = zip(IN_PATHS, OUT_PATHS)
 
 def main():
