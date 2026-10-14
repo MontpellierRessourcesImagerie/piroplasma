@@ -29,7 +29,8 @@ requires-python = ">=3.10"
 # See best practices: https://napari.org/stable/plugins/building_a_plugin/best_practices.html
 dependencies = [
     "napari-tiler>=0.1",
-    "napari-simpleannotate>=0.1.6",
+    "napari-simpleannotate@git+https://github.com/MontpellierRessourcesImagerie/napari-simpleannotate.git",
+    #"napari-simpleannotate>=0.1.6",
     "auto-options-python",
     "requests",
     "scikit-image",
