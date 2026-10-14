@@ -1,11 +1,15 @@
 import os
 
-trainPath = "/media/baecker/data/programs/Fiji/mri-tools/piroplasma/src/datasets/work/train/"
-trainBackgroundPath = "/media/baecker/data/programs/Fiji/mri-tools/piroplasma/src/datasets/work/background/train/"
-valPath = "/media/baecker/data/programs/Fiji/mri-tools/piroplasma/src/datasets/work/val/"
-valBackgroundPath = "/media/baecker/data/programs/Fiji/mri-tools/piroplasma/src/datasets/work/background/val/"
-testPath = "/media/baecker/data/programs/Fiji/mri-tools/piroplasma/src/datasets/work/test/"
-testBackgroundPath = "/media/baecker/data/programs/Fiji/mri-tools/piroplasma/src/datasets/work/background/test/"
+dataset = "ds260901"
+baseFolder = "/run/media/baecker/data/programs/Fiji/mri-tools/piroplasma/src/datasets/"
+datasetFolder = baseFolder + dataset + "/"
+backgroundFolder = "/run/media/baecker/data/programs/Fiji/mri-tools/piroplasma/src/datasets/" + dataset + "/background/"
+trainPath = datasetFolder + "train/"
+trainBackgroundPath = backgroundFolder + "train/"
+valPath = datasetFolder + "val/"
+valBackgroundPath = backgroundFolder + "val/"
+testPath = datasetFolder + "test/"
+testBackgroundPath = backgroundFolder + "test/"
 
 IN_PATHS = [trainPath, valPath, testPath]
 OUT_PATHS = [trainBackgroundPath, valBackgroundPath, testBackgroundPath]
