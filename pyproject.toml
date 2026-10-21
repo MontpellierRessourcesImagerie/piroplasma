@@ -37,7 +37,7 @@ dependencies = [
     "appdirs",
     "numpy",
     "ultralytics",
-    "microglia-analyzer",
+    "microglia-analyzer@git+https://github.com/MontpellierRessourcesImagerie/microglia-analyzer.git",
 ]
 
 [project.optional-dependencies]

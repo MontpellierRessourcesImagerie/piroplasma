@@ -5,5 +5,6 @@ except ImportError:
 
 from ._sample_data import make_sample_data
 from ._widget import RedBloodCellClassifierWidget
+from .tiling import tile_dataset
 
-__all__ = ("make_sample_data", "RedBloodCellClassifierWidget")
+__all__ = ("make_sample_data", "RedBloodCellClassifierWidget", "tile_dataset")
