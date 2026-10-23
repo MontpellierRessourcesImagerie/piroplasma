@@ -216,6 +216,103 @@ def test_tile_dataset_image_smaller_than_tile(tmp_path):
     assert boxes[0].label == 1
 
 
+def test_regions_with_global_margin(tmp_path):
+    tiled_image = make_tiled_image(
+        tmp_path, shape=(500, 500, 3), global_margin=25
+    )
+    regions = tiled_image.regions()
+    # 500 - 2 * 25 = 450 -> a 4 x 4 grid of 100 px tiles (some smaller at the edge)
+    assert regions
+    for region in regions:
+        assert region.y_min >= 25
+        assert region.x_min >= 25
+        assert region.y_max <= 500 - 25
+        assert region.x_max <= 500 - 25
+    # without a margin the layout touches the border of the image
+    tiled_image.options = TilingOptions(tile_size=100, overlap=0.0)
+    regions = tiled_image.regions()
+    assert min(r.y_min for r in regions) == 0
+    assert min(r.x_min for r in regions) == 0
+
+
+def test_global_margin_leaves_no_area(tmp_path):
+    tiled_image = make_tiled_image(tmp_path, shape=(200, 200, 3), global_margin=100)
+    with pytest.raises(ValueError, match="leaves no area"):
+        tiled_image.regions()
+
+
+def test_global_margin_excludes_border_annotations(tmp_path):
+    """Annotations in the excluded border strip must not reach a tile.
+
+    Cells that touch the border of the full image have no annotations at all,
+    so the strip is left out entirely - otherwise they would look like
+    background to the classifier.
+    """
+    input_dir = tmp_path / "in"
+    output_dir = tmp_path / "out"
+    input_dir.mkdir()
+    tifffile.imwrite(input_dir / "slide.tif", np.zeros((200, 200, 3), dtype=np.uint8))
+    # x 0-40 lies completely within the 50 px margin -> must be dropped
+    # x 60-80 lies inside the interior        -> must be kept
+    (input_dir / "slide.txt").write_text(
+        "1 0.1 0.5 0.2 0.2\n"
+        "2 0.35 0.5 0.1 0.1\n"
+    )
+    mapping = tile_dataset(
+        input_dir=str(input_dir),
+        output_dir=str(output_dir),
+        tile_size=100,
+        overlap=0.0,
+        global_margin=50,
+        overwrite=True,
+    )
+    kept = []
+    for tile_path, annotation_path in mapping.items():
+        boxes = AnnotationSet.from_yolo_file(
+            annotation_path, image_width=100, image_height=100
+        )
+        kept.extend(box.label for box in boxes)
+    assert kept == [2]
+
+
+def test_global_margin_cut_box_gets_border_class(tmp_path):
+    """A box crossing the inner boundary is cut and becomes a border box."""
+    tiled_image = make_tiled_image(
+        tmp_path, boxes=[(1, 30, 60, 70, 90)], shape=(200, 200, 3), global_margin=50
+    )
+    boxes = []
+    for region in tiled_image.regions():
+        boxes.extend(tiled_image.annotations_for(region))
+    assert boxes
+    assert all(box.label == 3 for box in boxes)
+
+
+def test_min_box_size_drops_cut_fragments(tmp_path):
+    """Only fragments created by cutting at a tile border are dropped."""
+    tiled_image = make_tiled_image(
+        tmp_path,
+        boxes=[
+            (1, 60, 10, 100, 50),  # inside the tile, small but not cut -> kept
+            (2, 40, 10, 80, 50),  # cut, fragment is 30 px wide -> dropped
+            (0, 40, 10, 140, 50),  # cut, fragment is 50 px wide -> kept
+        ],
+        shape=(200, 200, 3),
+        min_box_size=40,
+    )
+    region = TileRegion(y_min=0, x_min=50, y_max=100, x_max=150)
+    boxes = list(tiled_image.annotations_for(region))
+    assert [box.label for box in boxes] == [1, 3]
+
+
+def test_min_box_size_zero_keeps_everything(tmp_path):
+    tiled_image = make_tiled_image(
+        tmp_path, boxes=[(2, 40, 10, 80, 50)], shape=(200, 200, 3), min_box_size=0
+    )
+    region = TileRegion(y_min=0, x_min=50, y_max=100, x_max=150)
+    boxes = list(tiled_image.annotations_for(region))
+    assert len(boxes) == 1
+
+
 def test_tile_dataset_does_not_overwrite(tmp_path):
     input_dir = tmp_path / "in"
     output_dir = tmp_path / "out"

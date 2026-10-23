@@ -390,6 +390,7 @@ class TilingOptions:
     border_margin: int = 0
     overwrite: bool = False
     min_box_size: int = 0
+    global_margin: int = 0
 
 
 class TiledImage:
@@ -459,9 +460,45 @@ class TiledImage:
         return self._annotations
 
     def regions(self) -> List[TileRegion]:
-        """The regions the image is cut into."""
+        """The regions the image is cut into.
+
+        The layout is computed on the *interior* of the image: a strip of
+        ``global_margin`` pixels along the border of the full image is
+        excluded, so that cells touching the border of the full image - which
+        have no annotations - never end up in the training data as background.
+
+        Returns
+        -------
+        list of TileRegion
+            The regions, in absolute pixel coordinates of the full image.
+
+        Raises
+        ------
+        ValueError
+            If ``global_margin`` is so large that no area is left to tile.
+        """
+        margin = getattr(self.options, "global_margin", 0)
         layout = TileLayout(self.options.tile_size, self.options.overlap)
-        return layout.regions(self.shape)
+        if not margin:
+            return layout.regions(self.shape)
+        height, width = self.shape[:2]
+        if 2 * margin >= height or 2 * margin >= width:
+            raise ValueError(
+                f"global_margin of {margin} px leaves no area to tile in an "
+                f"image of size {width} x {height}"
+            )
+        inner_shape = (height - 2 * margin, width - 2 * margin) + self.shape[2:]
+        # Lay the tiles out on the interior and shift them into place, so that
+        # no tile reaches into the excluded border strip.
+        return [
+            TileRegion(
+                region.y_min + margin,
+                region.x_min + margin,
+                region.y_max + margin,
+                region.x_max + margin,
+            )
+            for region in layout.regions(inner_shape)
+        ]
 
     def annotations_for(self, region: TileRegion) -> AnnotationSet:
         """Distribute the annotations to one tile.
@@ -579,6 +616,7 @@ class TilingDataset:
         image_extensions: Sequence[str] = IMAGE_EXTENSIONS,
         overwrite: bool = False,
         min_box_size: int = 0,
+        global_margin: int = 0,
     ) -> None:
         """
         Parameters
@@ -611,6 +649,11 @@ class TilingDataset:
             border class because of the tiling - and that are smaller than this
             are dropped. Boxes that were already smaller in the source
             annotations are kept. ``0`` disables the filtering.
+        global_margin: int, default 0
+            Width (in pixels) of a strip along the border of the full image
+            that is excluded from the tiling. Cells touching the border of the
+            full image are not annotated, so tiles must not contain them -
+            they would be interpreted as background. ``0`` disables the margin.
         """
         self.input_dir = pathlib.Path(input_dir).expanduser().resolve()
         self.output_dir = pathlib.Path(output_dir).expanduser().resolve()
@@ -622,6 +665,7 @@ class TilingDataset:
             border_margin=border_margin,
             overwrite=overwrite,
             min_box_size=min_box_size,
+            global_margin=global_margin,
         )
         if not self.input_dir.is_dir():
             raise NotADirectoryError(f"{self.input_dir} is not a directory")
@@ -672,6 +716,7 @@ def tile_dataset(
     image_extensions: Sequence[str] = IMAGE_EXTENSIONS,
     overwrite: bool = False,
     min_box_size: int = 0,
+    global_margin: int = 0,
 ) -> Dict[str, str]:
     """Cut a folder of full resolution images into tiles and adapt the annotations.
 
@@ -711,6 +756,11 @@ def tile_dataset(
         because of the tiling - and that are smaller than this are dropped.
         Boxes that were already smaller in the source annotations are kept.
         ``0`` disables the filtering.
+    global_margin: int, default 0
+        Width (in pixels) of a strip along the border of the full image that is
+        excluded from the tiling. Cells touching the border of the full image
+        are not annotated, so tiles must not contain them - they would be
+        interpreted as background. ``0`` disables the margin.
 
     Returns
     -------
@@ -738,4 +788,5 @@ def tile_dataset(
         image_extensions=image_extensions,
         overwrite=overwrite,
         min_box_size=min_box_size,
+        global_margin=global_margin,
     ).run()

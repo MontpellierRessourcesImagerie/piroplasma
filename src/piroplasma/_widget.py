@@ -131,6 +131,7 @@ class ExportTrainingDataWidget(QWidget):
         opts.addInt("Border Class", value=3)
         opts.addInt("Border Margin", value=0)
         opts.addInt("Min Box Size", value=200)
+        opts.addInt("Global Margin", value=0)
         # image extensions – list of strings; use a free‑form text entry
         opts.addStr(
             "Image Extensions",
@@ -175,8 +176,14 @@ class ExportTrainingDataWidget(QWidget):
             "border_margin": self.options.value("Border Margin"),
             "image_extensions": extensions,
             "overwrite": self.options.value("Overwrite"),
-            "min_box_size": self.options.value("Min Box Size")
+            "min_box_size": self.options.value("Min Box Size"),
+            "global_margin": self.options.value("Global Margin"),
         }
+
+        global_margin = tile_opts["global_margin"]
+        if global_margin < 0:
+            notifications.show_error("Global Margin must not be negative!")
+            return
 
 
         # Define the operation callable
