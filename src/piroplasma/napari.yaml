@@ -12,6 +12,9 @@ contributions:
     - id: piroplasma.red_blood_cell_classifier
       python_name: piroplasma._widget:RedBloodCellClassifierWidget
       title: Red Blood Cell Classifier
+    - id: piroplasma.export_training_data
+      python_name: piroplasma._widget:ExportTrainingDataWidget
+      title: Export Training Data
   sample_data:
     - command: piroplasma.make_sample_data
       display_name: Piroplasma
@@ -19,3 +22,5 @@ contributions:
   widgets:
     - command: piroplasma.red_blood_cell_classifier
       display_name: Red Blood Cell Classifier
+    - command: piroplasma.export_training_data
+      display_name: Export Training Data

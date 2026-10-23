@@ -389,6 +389,7 @@ class TilingOptions:
     border_class: int = 3
     border_margin: int = 0
     overwrite: bool = False
+    min_box_size: int = 0
 
 
 class TiledImage:
@@ -480,16 +481,34 @@ class TiledImage:
             The annotations of the tile.
         """
         boxes: List[BoundingBox] = []
+        # Track which boxes received the border class *because* of this tile
+        # (rather than already having it in the source annotations).
+        was_cut: List[bool] = []
         for box in self.annotations:
             intersection = region.intersection(box)
             if intersection is None:
                 continue  # the box is not in this tile
+            cut = False
             if not region.contains(box, self.options.border_margin):
                 # the box is cut by the border of the tile (or too close to it)
                 intersection = intersection.relabeled(self.options.border_class)
+                cut = box.label != self.options.border_class
             boxes.append(
                 intersection.translated(dx=-region.x_min, dy=-region.y_min)
             )
+            was_cut.append(cut)
+        # Drop the fragments of cut boxes that became smaller than min_box_size.
+        # Boxes that were small to begin with are kept: only the pieces created
+        # by cutting a box at the tile border are removed.
+        if getattr(self.options, "min_box_size", 0) > 0:
+            min_sz = self.options.min_box_size
+            boxes = [
+                box
+                for box, cut in zip(boxes, was_cut)
+                if not cut
+                or (box.x_max - box.x_min) >= min_sz
+                and (box.y_max - box.y_min) >= min_sz
+            ]
         return AnnotationSet(boxes)
 
     def tile_paths(self, index: int) -> Tuple[pathlib.Path, pathlib.Path]:
@@ -559,6 +578,7 @@ class TilingDataset:
         border_margin: int = 0,
         image_extensions: Sequence[str] = IMAGE_EXTENSIONS,
         overwrite: bool = False,
+        min_box_size: int = 0,
     ) -> None:
         """
         Parameters
@@ -585,6 +605,12 @@ class TilingDataset:
         overwrite: bool, default False
             If False, tiles that already exist are not written again. This
             allows to interrupt and resume the tiling of a large dataset.
+        min_box_size: int, default 0
+            Minimum width and height (in pixels) of a box. Fragments of boxes
+            that were cut by the border of a tile - i.e. that received the
+            border class because of the tiling - and that are smaller than this
+            are dropped. Boxes that were already smaller in the source
+            annotations are kept. ``0`` disables the filtering.
         """
         self.input_dir = pathlib.Path(input_dir).expanduser().resolve()
         self.output_dir = pathlib.Path(output_dir).expanduser().resolve()
@@ -595,6 +621,7 @@ class TilingDataset:
             border_class=border_class,
             border_margin=border_margin,
             overwrite=overwrite,
+            min_box_size=min_box_size,
         )
         if not self.input_dir.is_dir():
             raise NotADirectoryError(f"{self.input_dir} is not a directory")
@@ -644,6 +671,7 @@ def tile_dataset(
     border_margin: int = 0,
     image_extensions: Sequence[str] = IMAGE_EXTENSIONS,
     overwrite: bool = False,
+    min_box_size: int = 0,
 ) -> Dict[str, str]:
     """Cut a folder of full resolution images into tiles and adapt the annotations.
 
@@ -677,6 +705,12 @@ def tile_dataset(
     overwrite: bool, default False
         If False, tiles that already exist are not written again. This allows
         to interrupt and resume the tiling of a large dataset.
+    min_box_size: int, default 0
+        Minimum width and height (in pixels) of a box. Fragments of boxes that
+        were cut by the border of a tile - i.e. that received the border class
+        because of the tiling - and that are smaller than this are dropped.
+        Boxes that were already smaller in the source annotations are kept.
+        ``0`` disables the filtering.
 
     Returns
     -------
@@ -703,4 +737,5 @@ def tile_dataset(
         border_margin=border_margin,
         image_extensions=image_extensions,
         overwrite=overwrite,
+        min_box_size=min_box_size,
     ).run()

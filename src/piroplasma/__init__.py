@@ -4,7 +4,7 @@ except ImportError:
     __version__ = "unknown"
 
 from ._sample_data import make_sample_data
-from ._widget import RedBloodCellClassifierWidget
+from ._widget import RedBloodCellClassifierWidget, ExportTrainingDataWidget
 from .tiling import tile_dataset
 
-__all__ = ("make_sample_data", "RedBloodCellClassifierWidget", "tile_dataset")
+__all__ = ("make_sample_data", "RedBloodCellClassifierWidget", "ExportTrainingDataWidget", "tile_dataset")
